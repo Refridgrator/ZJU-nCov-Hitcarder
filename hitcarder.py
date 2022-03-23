@@ -87,10 +87,13 @@ class HitCarder(object):
         except IndexError as _:
             raise RegexMatchError('Relative info not found in html with regex')
 
+        # fh = open('new_form4.txt','w',encoding='utf-8')
+        # fh.write(new_form)
+        # fh.close
         with open("form.txt", "r", encoding="utf-8") as f:
             if new_form == f.read():
                 return True
-        return True
+        return False
 
     def get_info(self, html=None):
         """Get hit card info, which is the old info with updated new time."""
@@ -220,6 +223,8 @@ def main(username, password):
 if __name__ == "__main__":
     username = os.environ['USERNAME']
     password = os.environ['PASSWORD']
+    # username = ''
+    # password = ''
 
     ret, msg = main(username, password)
     print(ret, msg)
@@ -229,6 +234,7 @@ if __name__ == "__main__":
         print(ret, msg)
 
     dingtalk_token = os.environ.get('DINGTALK_TOKEN')
+    # dingtalk_token = ''
     if dingtalk_token:
         ret = message.dingtalk(msg, dingtalk_token)
         print('send_dingtalk_message', ret)
