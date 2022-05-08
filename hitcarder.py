@@ -9,6 +9,7 @@ import datetime
 import os
 import sys
 import message
+import ddddocr
 
 
 class HitCarder(object):
@@ -29,6 +30,8 @@ class HitCarder(object):
         self.login_url = "https://zjuam.zju.edu.cn/cas/login?service=https%3A%2F%2Fhealthreport.zju.edu.cn%2Fa_zju%2Fapi%2Fsso%2Findex%3Fredirect%3Dhttps%253A%252F%252Fhealthreport.zju.edu.cn%252Fncov%252Fwap%252Fdefault%252Findex"
         self.base_url = "https://healthreport.zju.edu.cn/ncov/wap/default/index"
         self.save_url = "https://healthreport.zju.edu.cn/ncov/wap/default/save"
+        self.captcha_url = "https://healthreport.zju.edu.cn/ncov/wap/default/code"
+        self.ocr = ddddocr.DdddOcr()
         self.sess = requests.Session()
         self.sess.keep_alive = False
         retry = Retry(connect=3, backoff_factor=0.5)
@@ -39,6 +42,15 @@ class HitCarder(object):
         # self.sess.headers['User-Agent'] = ua.chrome
         self.sess.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36'}
+
+    def get_captcha(self):
+        """Get CAPTCHA code"""
+        cookie_dict = {'eai-sess': 'iobgtif48bnpc97do0u1h15ud2'}
+        self.sess.cookies = requests.cookies.cookiejar_from_dict(cookie_dict)
+        resp = self.sess.get(self.captcha_url)
+        captcha = self.ocr.classification(resp.content)
+        print("验证码：", captcha)
+        return captcha
 
     def login(self):
         """Login to ZJU platform"""
@@ -109,6 +121,10 @@ class HitCarder(object):
             else:
                 raise RegexMatchError("未发现缓存信息，请先至少手动成功打卡一次再运行脚本")
 
+            # fh = open('new_form5.txt','w',encoding='utf-8')
+            # fh.write(html)
+            # fh.close
+
             new_info_tmp = json.loads(re.findall(r'def = ({[^\n]+})', html)[0])
             new_id = new_info_tmp['id']
             name = re.findall(r'realname: "([^\"]+)",', html)[0]
@@ -135,16 +151,17 @@ class HitCarder(object):
         new_info["created"] = round(time.time())
         # form change
         new_info['jrdqjcqk'] = ""
-        new_info['jrdqtlqk'] = []
-        new_info['sfsqhzjkk'] = 1
-        new_info['sqhzjkkys'] = 1
-        new_info['sfqrxxss'] = 1
-        new_info['szgjcs'] = ""
-        new_info['zgfx14rfhsj'] = ""
+        new_info['jrdqtlqk'] = [] # 你是否从以下地区返回浙江（含经停）? 
+        new_info['sfsqhzjkk'] = 1 # 是否已经申领校区所在地健康码？
+        new_info['sqhzjkkys'] = 1 # 今日申领校区所在地健康码的颜色？
+        new_info['sfqrxxss'] = 1 # 上述信息真实准确。如有变化，及时更新相关信息并报告所在单位
+        new_info['szgjcs'] = "" # 所在地点（请打开手机位置功能，并在手机权限设置中选择允许访问位置信息）
+        new_info['zgfx14rfhsj'] = "" 
         new_info['gwszdd'] = ""
         new_info['jcqzrq'] = ""
-        new_info['ismoved'] = 0
-        new_info.update(magic_code_group)
+        new_info['ismoved'] = 0 # 当前地点与上次不在同一城市，原因如下
+        new_info['verifyCode'] = self.get_captcha()
+        new_info.update(magic_code_group) # 往字典中添加键值对
 
         self.info = new_info
         # print(json.dumps(self.info))
