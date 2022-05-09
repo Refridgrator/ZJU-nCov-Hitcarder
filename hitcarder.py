@@ -99,7 +99,7 @@ class HitCarder(object):
         except IndexError as _:
             raise RegexMatchError('Relative info not found in html with regex')
 
-        # fh = open('new_form4.txt','w',encoding='utf-8')
+        # fh = open('form.txt','w',encoding='utf-8')
         # fh.write(new_form)
         # fh.close
         with open("form.txt", "r", encoding="utf-8") as f:
